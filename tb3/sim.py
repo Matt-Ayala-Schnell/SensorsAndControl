@@ -1,5 +1,5 @@
 import os
-##os.environ.setdefault("MUJOCO_GL", "egl") ##Potential to be linux only...
+#os.environ.setdefault("MUJOCO_GL", "egl") 
 import numpy as np
 import mujoco
 from . import config as C
@@ -19,7 +19,7 @@ class Sim:
         self.renderer = mujoco.Renderer(self.m, C.CAM_H, C.CAM_W) if render else None
         self.enc_noise = enc_noise
         self.pixel_noise = C.PIXEL_NOISE
-        self.gm = np.array([1, 0, 0, 0, 0, 0], dtype=np.uint8)   # LiDAR sees group 0 only (world), not the robot (group 1)
+        self.gm = np.array([1, 0, 0, 0, 0, 0], dtype=np.uint8)  
         ang = np.linspace(0, 2 * np.pi, C.LIDAR_N, endpoint=False)
         self.lid_ang = ang
         self.lid_dirs_b = np.stack([np.cos(ang), np.sin(ang), np.zeros_like(ang)], 1)
@@ -27,7 +27,6 @@ class Sim:
         self.push = np.zeros(6)
         self.t = 0.0
 
-    # ----- setup -----
     def reset(self, pose):
         mujoco.mj_resetData(self.m, self.d)
         self.d.ctrl[:] = 0.0
@@ -35,11 +34,11 @@ class Sim:
         self.d.qpos[0:3] = [x, y, 0.033]
         self.d.qpos[3:7] = [np.cos(th / 2), 0, 0, np.sin(th / 2)]
         mujoco.mj_forward(self.m, self.d)
-        for _ in range(40):                      # settle
+        for _ in range(40):                      
             mujoco.mj_step(self.m, self.d)
         self.d.qvel[:] = 0
         self.t = 0.0
-        self._enc_phase = self.rng.uniform(-1, 1, 2)  # encoder zero offset (sub-tick)
+        self._enc_phase = self.rng.uniform(-1, 1, 2)  
         self._enc_last = self.encoders()
 
     def set_wheel_speeds(self, wl, wr):
@@ -56,9 +55,7 @@ class Sim:
             mujoco.mj_step(self.m, self.d)
         self.t = self.d.time
 
-    # ----- sensors -----
     def encoders(self):
-        """Cumulative wheel angles (rad), quantised to ENC_TICKS per rev. (left, right)."""
         q = np.array([self.d.qpos[self.jl], self.d.qpos[self.jr]])
         tick = 2 * np.pi / C.ENC_TICKS
         return np.round(q / tick) * tick
@@ -67,10 +64,9 @@ class Sim:
         e = self.encoders()
         de = e - self._enc_last
         self._enc_last = e
-        return C.WHEEL_R * de[0], C.WHEEL_R * de[1]    # ds_left, ds_right (m)
+        return C.WHEEL_R * de[0], C.WHEEL_R * de[1]    
 
     def lidar(self):
-        """360 ranges (m) in the lidar frame; inf where nothing within LIDAR_MAX."""
         pos = self.d.site_xpos[self.lid_site].copy()
         R = self.d.site_xmat[self.lid_site].reshape(3, 3)
         dirs = (R @ self.lid_dirs_b.T).T
@@ -84,14 +80,12 @@ class Sim:
         return r
 
     def camera(self):
-        """Grayscale uint8 image with sensor noise."""
         self.renderer.update_scene(self.d, "cam")
         rgb = self.renderer.render()
         g = (0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2])
         g = g + self.rng.normal(0, self.pixel_noise, g.shape)
         return np.clip(g, 0, 255).astype(np.uint8)
 
-    # ----- evaluation-only ground truth -----
     def truth_pose(self):
         p = self.d.xpos[self.bid]
         q = self.d.xquat[self.bid]
@@ -99,7 +93,6 @@ class Sim:
         return np.array([p[0], p[1], yaw])
 
     def truth_collision(self):
-        """True if any robot geom (group 1) touches a world geom (group 0) other than the floor. Evaluation only."""
         fl = self.m.geom("floor").id
         gg = self.m.geom_group
         for i in range(self.d.ncon):
