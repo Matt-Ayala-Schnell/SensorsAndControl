@@ -1,16 +1,16 @@
 import numpy as np
-from . import config as C
+#from . import config as C
 
 wrap = lambda a: (np.asarray(a) + np.pi) % (2 * np.pi) - np.pi 
 
 """KINEMATICS ESTIMATOR MODELS"""
 def f_odom(x, ds, dth):
   th = x[2] + dth / 2
-  return np.array(x[0] + ds * np.cos(th), x[1] + ds * np.sin(th), wrap(x[2] + dth)])
+  return np.array([x[0] + ds * np.cos(th), x[1] + ds * np.sin(th), wrap(x[2] + dth)])
 
 def jac_F(x, ds, dth):
   th = x[2] + dth / 2
-  return np.array([[1, 0, -ds * np.sin(th)], [0, 1, ds * np.cos(th), [0,0, 1]])
+  return np.array([1, 0, -ds * np.sin(th)], [0, 1, ds * np.cos(th), [0,0, 1]])
 
 def jac_G(x, ds, dth, b):
     """d f / d (ds_right, ds_left): ds=(dr+dl)/2, dth=(dr-dl)/b."""
@@ -33,3 +33,4 @@ def jac_H(x, m):
     q = dx * dx + dy * dy
     r = np.sqrt(q)
     return np.array([[-dx / r, -dy / r, 0.0], [dy / q, -dx / q, -1.0]])
+
