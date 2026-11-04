@@ -1,5 +1,5 @@
 import os
-os.environ.setdefault("MUJOCO_GL", "egl")
+##os.environ.setdefault("MUJOCO_GL", "egl") ##Potential to be linux only...
 import numpy as np
 import mujoco
 from . import config as C
