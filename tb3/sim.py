@@ -1,5 +1,7 @@
 import os
-#os.environ.setdefault("MUJOCO_GL", "egl") 
+import sys
+if sys.platform.startswith("linux"):
+    os.environ.setdefault("MUJOCO_GL", "egl")
 import numpy as np
 import mujoco
 from . import config as C
@@ -23,7 +25,7 @@ class Sim:
         ang = np.linspace(0, 2 * np.pi, C.LIDAR_N, endpoint=False)
         self.lid_ang = ang
         self.lid_dirs_b = np.stack([np.cos(ang), np.sin(ang), np.zeros_like(ang)], 1)
-        self._enc_last = None
+        self._enc_last = np.zeros(2)
         self.push = np.zeros(6)
         self.t = 0.0
 
@@ -80,6 +82,7 @@ class Sim:
         return r
 
     def camera(self):
+        assert self.renderer is not None, "Sim was created with render=False"
         self.renderer.update_scene(self.d, "cam")
         rgb = self.renderer.render()
         g = (0.299 * rgb[..., 0] + 0.587 * rgb[..., 1] + 0.114 * rgb[..., 2])
@@ -103,7 +106,8 @@ class Sim:
         return False
 
     def close(self):
-        try:
-            self.renderer.close()
-        except Exception:
-            pass
+        if self.renderer is not None:
+            try:
+                self.renderer.close()
+            except Exception:
+                pass

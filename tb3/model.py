@@ -1,5 +1,5 @@
 import numpy as np
-#from . import config as C
+from . import config as C
 
 wrap = lambda a: (np.asarray(a) + np.pi) % (2 * np.pi) - np.pi 
 
@@ -10,7 +10,7 @@ def f_odom(x, ds, dth):
 
 def jac_F(x, ds, dth):
   th = x[2] + dth / 2
-  return np.array([1, 0, -ds * np.sin(th)], [0, 1, ds * np.cos(th), [0,0, 1]])
+  return np.array([[1, 0, -ds * np.sin(th)], [0, 1, ds * np.cos(th)], [0, 0, 1]])
 
 def jac_G(x, ds, dth, b):
     """d f / d (ds_right, ds_left): ds=(dr+dl)/2, dth=(dr-dl)/b."""

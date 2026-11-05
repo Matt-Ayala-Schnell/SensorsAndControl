@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import numpy as np, cv2
 from scipy.spatial.transform import Rotation as Rot
 from tb3.sim import Sim
+import mujoco  
 from tb3 import config as C, vision as V
 
 N_VIEWS = 60
@@ -27,18 +28,18 @@ for k in range(N_VIEWS * 3):
     s.d.mocap_pos[0] = pos
     q = Rot.from_matrix(R).as_quat()  
     s.d.mocap_quat[0] = [q[3], q[0], q[1], q[2]]
-    import mujoco; mujoco.mj_forward(s.m, s.d)
+    mujoco.mj_forward(s.m, s.d)
     img = s.camera()
-    ok, c = cv2.findChessboardCorners(img, (nx, ny), cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE)
+    ok, c = cv2.findChessboardCorners(img, (nx, ny), flags=cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE)    
     if not ok:
         continue
     c = cv2.cornerSubPix(img, c, (7, 7), (-1, -1), (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 40, 1e-4))
     objpts.append(objp); imgpts.append(c); kept += 1
 print("views used:", kept)
-rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpts, imgpts, (C.CAM_W, C.CAM_H), None, None, flags=FLAGS)
+rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(objpts, imgpts, (C.CAM_W, C.CAM_H), np.eye(3), np.zeros(5), flags=FLAGS)
 Kt = V.true_intrinsics()
 
-rms_tr, K30, d30, _, _ = cv2.calibrateCamera(objpts[:40], imgpts[:40], (C.CAM_W, C.CAM_H), None, None, flags=FLAGS)
+rms_tr, K30, d30, _, _ = cv2.calibrateCamera(objpts[:40], imgpts[:40], (C.CAM_W, C.CAM_H), np.eye(3), np.zeros(5), flags=FLAGS)
 errs = []
 for o, i in zip(objpts[40:], imgpts[40:]):
     ok, rv, tv = cv2.solvePnP(o, i, K30, d30)
